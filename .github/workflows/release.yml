@@ -50,7 +50,7 @@ jobs:
           distribution: temurin
           java-version: "17"
       - uses: gradle/actions/setup-gradle@0723195856401067f7a2779048b490ace7a47d7c
-      - run: sdkmanager "platforms;android-37.0" "build-tools;36.0.0"
+      - run: "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-37.0" "build-tools;36.0.0"
       - run: ./gradlew --no-daemon testDebugUnitTest lintDebug assembleDebugAndroidTest
 
   instrumented:
@@ -68,7 +68,7 @@ jobs:
           distribution: temurin
           java-version: "17"
       - uses: gradle/actions/setup-gradle@0723195856401067f7a2779048b490ace7a47d7c
-      - run: sdkmanager "platforms;android-37.0" "build-tools;36.0.0"
+      - run: "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-37.0" "build-tools;36.0.0"
       - uses: ReactiveCircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d
         with:
           api-level: ${{ matrix.api }}
@@ -99,7 +99,7 @@ jobs:
           distribution: temurin
           java-version: "17"
       - uses: gradle/actions/setup-gradle@0723195856401067f7a2779048b490ace7a47d7c
-      - run: sdkmanager "platforms;android-37.0" "build-tools;36.0.0"
+      - run: "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-37.0" "build-tools;36.0.0"
       - name: Decode signing key in runner temporary directory
         shell: bash
         env:
