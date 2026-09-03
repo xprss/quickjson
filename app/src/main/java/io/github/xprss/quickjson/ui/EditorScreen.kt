@@ -4,7 +4,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -57,6 +56,7 @@ import androidx.compose.ui.text.input.OffsetMapping
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.input.TransformedText
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -316,49 +316,50 @@ private fun VisualEditor(
 ) {
     val expanded = remember { mutableStateMapOf("$" to true) }
     val adding = remember { mutableStateMapOf<String, Boolean>() }
-    BoxWithConstraints(Modifier.fillMaxSize()) {
-        val horizontalPadding = if (maxWidth >= 840.dp) 48.dp else 8.dp
+    Box(Modifier.fillMaxSize()) {
         Column(
-            Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = horizontalPadding, vertical = 8.dp),
+            Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 12.dp, vertical = 8.dp),
         ) {
-            Surface(
-                modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
-                color = MaterialTheme.colorScheme.secondaryContainer,
-                shape = MaterialTheme.shapes.medium,
-            ) {
-                Row(
-                    Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
+            Column(Modifier.fillMaxWidth().widthIn(max = 760.dp).align(Alignment.CenterHorizontally)) {
+                Surface(
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                    color = MaterialTheme.colorScheme.secondaryContainer,
+                    shape = MaterialTheme.shapes.medium,
                 ) {
-                    Column(Modifier.weight(1f)) {
-                        Text(stringResource(R.string.builder), style = MaterialTheme.typography.titleSmall)
+                    Row(
+                        Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Column(Modifier.weight(1f)) {
+                            Text(stringResource(R.string.builder), style = MaterialTheme.typography.titleSmall)
+                            Text(
+                                stringResource(R.string.builder_hint),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                            )
+                        }
                         Text(
-                            stringResource(R.string.builder_hint),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSecondaryContainer,
+                            if (root is JsonObject) "{ ${root.size} }" else if (root is JsonArray) "[ ${root.size} ]" else JsonTree.typeOf(root).name.lowercase(),
+                            style = MaterialTheme.typography.labelLarge,
                         )
                     }
-                    Text(
-                        if (root is JsonObject) "{ ${root.size} }" else if (root is JsonArray) "[ ${root.size} ]" else JsonTree.typeOf(root).name.lowercase(),
-                        style = MaterialTheme.typography.labelLarge,
-                    )
                 }
+                JsonNode(
+                    element = root,
+                    path = JsonPath(),
+                    label = "$",
+                    depth = 0,
+                    expanded = expanded,
+                    adding = adding,
+                    onRemove = onRemove,
+                    onDuplicate = onDuplicate,
+                    onMove = onMove,
+                    onAddValue = onAddValue,
+                    onRenameKey = onRenameKey,
+                    onUpdatePrimitive = onUpdatePrimitive,
+                    onChangeType = onChangeType,
+                )
             }
-            JsonNode(
-                element = root,
-                path = JsonPath(),
-                label = "$",
-                depth = 0,
-                expanded = expanded,
-                adding = adding,
-                onRemove = onRemove,
-                onDuplicate = onDuplicate,
-                onMove = onMove,
-                onAddValue = onAddValue,
-                onRenameKey = onRenameKey,
-                onUpdatePrimitive = onUpdatePrimitive,
-                onChangeType = onChangeType,
-            )
         }
     }
 }
@@ -390,9 +391,9 @@ private fun JsonNode(
             .semantics { contentDescription = pathText },
         tonalElevation = if (depth == 0) 2.dp else 0.dp,
     ) {
-        Column(Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 2.dp)) {
+        Column(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp)) {
             Row(
-                Modifier.fillMaxWidth().heightIn(min = 52.dp).horizontalScroll(rememberScrollState()),
+                Modifier.fillMaxWidth().heightIn(min = 44.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 if (isContainer) {
@@ -404,32 +405,17 @@ private fun JsonNode(
                     ) {
                         Text(if (isExpanded) "▾" else "▸")
                     }
-                } else Spacer(Modifier.width(12.dp))
-                if (path.parts.lastOrNull() is io.github.xprss.quickjson.domain.PathPart.Key) {
-                    var key by remember(label) { mutableStateOf(label) }
-                    OutlinedTextField(
-                        value = key,
-                        onValueChange = { key = it },
-                        singleLine = true,
-                        modifier = Modifier.widthIn(min = 96.dp, max = 180.dp),
-                        label = { Text(stringResource(R.string.key)) },
-                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                        keyboardActions = KeyboardActions(onDone = { onRenameKey(path, key) }),
-                        trailingIcon = { TextButton(onClick = { onRenameKey(path, key) }) { Text("✓") } },
-                    )
-                } else {
-                    Text(label, modifier = Modifier.widthIn(min = 36.dp), style = MaterialTheme.typography.labelLarge)
-                }
-                Spacer(Modifier.width(6.dp))
-                if (!isContainer) {
-                    PrimitiveEditor(element, path, onUpdatePrimitive, Modifier.weight(1f))
-                } else {
-                    Text(
-                        if (element is JsonObject) "object · ${element.size}" else "array · ${(element as JsonArray).size}",
-                        modifier = Modifier.weight(1f),
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
-                }
+                } else Spacer(Modifier.width(8.dp))
+                Text(
+                    if (isContainer) {
+                        val summary = if (element is JsonObject) "object · ${element.size}" else "array · ${(element as JsonArray).size}"
+                        if (depth == 0) summary else "$label · $summary"
+                    } else label,
+                    modifier = Modifier.weight(1f),
+                    style = MaterialTheme.typography.labelLarge,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
                 TypeMenu(JsonTree.typeOf(element)) { onChangeType(path, it) }
                 if (isContainer) {
                     TextButton(
@@ -437,7 +423,28 @@ private fun JsonNode(
                         modifier = Modifier.heightIn(min = 48.dp).semantics { contentDescription = addDescription },
                     ) { Text("＋") }
                 }
-                if (depth > 0) {
+            }
+            if (path.parts.lastOrNull() is io.github.xprss.quickjson.domain.PathPart.Key) {
+                var key by remember(label) { mutableStateOf(label) }
+                OutlinedTextField(
+                    value = key,
+                    onValueChange = { key = it },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text(stringResource(R.string.key)) },
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                    keyboardActions = KeyboardActions(onDone = { onRenameKey(path, key) }),
+                    trailingIcon = { TextButton(onClick = { onRenameKey(path, key) }) { Text("✓") } },
+                )
+            }
+            if (!isContainer) {
+                PrimitiveEditor(element, path, onUpdatePrimitive, Modifier.fillMaxWidth())
+            }
+            if (depth > 0) {
+                Row(
+                    Modifier.fillMaxWidth().padding(top = 2.dp),
+                    horizontalArrangement = Arrangement.End,
+                ) {
                     NodeAction("↑", stringResource(R.string.move_up)) { onMove(path, -1) }
                     NodeAction("↓", stringResource(R.string.move_down)) { onMove(path, 1) }
                     NodeAction("⧉", stringResource(R.string.duplicate)) { onDuplicate(path) }
@@ -482,6 +489,8 @@ private fun InlineAddRow(
     var type by remember(path) { mutableStateOf(JsonType.STRING) }
     var value by remember(path, type) { mutableStateOf(defaultInput(type)) }
     val keyFocus = remember { FocusRequester() }
+    val valueFocus = remember { FocusRequester() }
+    val needsValue = type !in setOf(JsonType.OBJECT, JsonType.ARRAY, JsonType.NULL)
     LaunchedEffect(path) { if (isObject) keyFocus.requestFocus() }
     fun submit() {
         onAdd(key, value, type)
@@ -494,44 +503,51 @@ private fun InlineAddRow(
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
         shape = MaterialTheme.shapes.small,
     ) {
-        Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text(
                 stringResource(if (isObject) R.string.add_property else R.string.add_item),
                 style = MaterialTheme.typography.labelLarge,
             )
+            if (isObject) {
+                OutlinedTextField(
+                    value = key,
+                    onValueChange = { key = it },
+                    label = { Text(stringResource(R.string.key)) },
+                    placeholder = { Text("name") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth().focusRequester(keyFocus),
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                    keyboardActions = KeyboardActions(onNext = { if (needsValue) valueFocus.requestFocus() }),
+                )
+            }
             Row(
-                Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(stringResource(R.string.type_label), modifier = Modifier.weight(1f), style = MaterialTheme.typography.labelMedium)
+                TypeMenu(type, compact = false) { type = it }
+            }
+            if (needsValue) {
+                OutlinedTextField(
+                    value = value,
+                    onValueChange = { value = it },
+                    label = { Text(stringResource(R.string.value)) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth().focusRequester(valueFocus),
+                    textStyle = TextStyle(fontFamily = FontFamily.Monospace),
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                    keyboardActions = KeyboardActions(onDone = { submit() }),
+                )
+            }
+            Row(
+                Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                if (isObject) {
-                    OutlinedTextField(
-                        value = key,
-                        onValueChange = { key = it },
-                        label = { Text(stringResource(R.string.key)) },
-                        placeholder = { Text("name") },
-                        singleLine = true,
-                        modifier = Modifier.widthIn(min = 132.dp, max = 200.dp).focusRequester(keyFocus),
-                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-                    )
-                }
-                TypeMenu(type) { type = it }
-                if (type !in setOf(JsonType.OBJECT, JsonType.ARRAY, JsonType.NULL)) {
-                    OutlinedTextField(
-                        value = value,
-                        onValueChange = { value = it },
-                        label = { Text(stringResource(R.string.value)) },
-                        singleLine = true,
-                        modifier = Modifier.widthIn(min = 132.dp, max = 260.dp),
-                        textStyle = TextStyle(fontFamily = FontFamily.Monospace),
-                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                        keyboardActions = KeyboardActions(onDone = { submit() }),
-                    )
-                }
-                TextButton(
+                Button(
                     onClick = { submit() },
                     enabled = !isObject || key.isNotBlank(),
-                    modifier = Modifier.heightIn(min = 48.dp),
+                    modifier = Modifier.weight(1f).heightIn(min = 48.dp),
                 ) { Text(stringResource(R.string.add)) }
                 TextButton(onClick = onDismiss, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.cancel)) }
             }
@@ -581,7 +597,7 @@ private fun NodeAction(symbol: String, description: String, action: () -> Unit) 
 }
 
 @Composable
-private fun TypeMenu(current: JsonType, onType: (JsonType) -> Unit) {
+private fun TypeMenu(current: JsonType, compact: Boolean = true, onType: (JsonType) -> Unit) {
     var open by remember { mutableStateOf(false) }
     val typeDescription = stringResource(R.string.type, current.name.lowercase())
     Box {
@@ -591,7 +607,7 @@ private fun TypeMenu(current: JsonType, onType: (JsonType) -> Unit) {
                 contentDescription = typeDescription
             },
         ) {
-            Text(current.name.lowercase().take(3))
+            Text(if (compact) current.name.lowercase().take(3) else current.name.lowercase())
         }
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
             JsonType.entries.forEach { type ->

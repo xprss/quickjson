@@ -38,6 +38,7 @@
     <string name="collapse">Comprimi</string>
     <string name="node_path">Percorso: %1$s</string>
     <string name="type">Tipo: %1$s</string>
+    <string name="type_label">Tipo</string>
     <string name="add">Aggiungi</string>
     <string name="move_up">Sposta su</string>
     <string name="move_down">Sposta giù</string>
