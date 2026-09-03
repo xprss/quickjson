@@ -242,7 +242,7 @@ jobs:
           sha256sum "${output}" > "${output}.sha256"
           cp app/build/outputs/mapping/release/mapping.txt "${artifact_dir}/quickjson-v${VERSION_NAME}-mapping.txt"
       - name: Attest build provenance
-        uses: actions/attest-build-provenance@96278af6caaf10aea03fd8d33a09a777ca52d62f
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8
         with:
           subject-path: release-assets/*
       - name: Publish GitHub Release and tag
