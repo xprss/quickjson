@@ -104,21 +104,26 @@ fun EditorScreen(
         Surface(tonalElevation = 3.dp) {
             Column {
                 Row(
-                    Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 4.dp),
+                    Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    TextButton(onClick = onBack, modifier = Modifier.heightIn(min = 48.dp)) { Text("‹ ${stringResource(R.string.back)}") }
+                    val backDescription = stringResource(R.string.back)
+                    TextButton(
+                        onClick = onBack,
+                        modifier = Modifier.width(44.dp).heightIn(min = 48.dp).semantics { contentDescription = backDescription },
+                    ) { Text("‹", fontSize = 28.sp) }
                     OutlinedTextField(
                         value = editor.document.title,
                         onValueChange = onRename,
                         singleLine = true,
-                        modifier = Modifier.weight(1f),
-                        textStyle = MaterialTheme.typography.titleMedium,
+                        maxLines = 1,
+                        modifier = Modifier.weight(1f).widthIn(min = 0.dp).heightIn(min = 52.dp, max = 52.dp),
+                        textStyle = MaterialTheme.typography.titleSmall,
                     )
-                    TextButton(onClick = onSave, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.save)) }
                     Box {
-                        TextButton(onClick = { more = true }, modifier = Modifier.heightIn(min = 48.dp)) { Text("⋮") }
+                        TextButton(onClick = { more = true }, modifier = Modifier.width(44.dp).heightIn(min = 48.dp)) { Text("⋮", fontSize = 22.sp) }
                         DropdownMenu(expanded = more, onDismissRequest = { more = false }) {
+                            DropdownMenuItem(text = { Text(stringResource(R.string.save)) }, onClick = { more = false; onSave() })
                             DropdownMenuItem(text = { Text(stringResource(R.string.save_as)) }, onClick = { more = false; onSaveAs() })
                             DropdownMenuItem(text = { Text(stringResource(R.string.share)) }, onClick = { more = false; onShare() })
                             DropdownMenuItem(text = { Text(stringResource(R.string.save_template)) }, onClick = { more = false; templateDialog = true })
@@ -321,29 +326,6 @@ private fun VisualEditor(
             Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 12.dp, vertical = 8.dp),
         ) {
             Column(Modifier.fillMaxWidth().widthIn(max = 760.dp).align(Alignment.CenterHorizontally)) {
-                Surface(
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
-                    color = MaterialTheme.colorScheme.secondaryContainer,
-                    shape = MaterialTheme.shapes.medium,
-                ) {
-                    Row(
-                        Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Column(Modifier.weight(1f)) {
-                            Text(stringResource(R.string.builder), style = MaterialTheme.typography.titleSmall)
-                            Text(
-                                stringResource(R.string.builder_hint),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSecondaryContainer,
-                            )
-                        }
-                        Text(
-                            if (root is JsonObject) "{ ${root.size} }" else if (root is JsonArray) "[ ${root.size} ]" else JsonTree.typeOf(root).name.lowercase(),
-                            style = MaterialTheme.typography.labelLarge,
-                        )
-                    }
-                }
                 JsonNode(
                     element = root,
                     path = JsonPath(),
@@ -389,7 +371,7 @@ private fun JsonNode(
     Surface(
         modifier = Modifier.fillMaxWidth().padding(start = (depth * 10).dp, bottom = 4.dp)
             .semantics { contentDescription = pathText },
-        tonalElevation = if (depth == 0) 2.dp else 0.dp,
+        color = MaterialTheme.colorScheme.surface,
     ) {
         Column(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp)) {
             Row(
@@ -459,6 +441,7 @@ private fun JsonNode(
                         onAddValue(path, key, value, type)
                         adding[pathText] = true
                     },
+                    showCancel = adding[pathText] ?: false,
                     onDismiss = { adding[pathText] = false },
                 )
             }
@@ -482,6 +465,7 @@ private fun InlineAddRow(
     parent: JsonElement,
     path: JsonPath,
     onAdd: (String, String, JsonType) -> Unit,
+    showCancel: Boolean,
     onDismiss: () -> Unit,
 ) {
     val isObject = parent is JsonObject
@@ -498,12 +482,12 @@ private fun InlineAddRow(
         value = defaultInput(type)
         if (isObject) keyFocus.requestFocus()
     }
-    Surface(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        shape = MaterialTheme.shapes.small,
+    Column(
+        Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        HorizontalDivider()
+        Column(Modifier.padding(horizontal = 4.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text(
                 stringResource(if (isObject) R.string.add_property else R.string.add_item),
                 style = MaterialTheme.typography.labelLarge,
@@ -549,9 +533,10 @@ private fun InlineAddRow(
                     enabled = !isObject || key.isNotBlank(),
                     modifier = Modifier.weight(1f).heightIn(min = 48.dp),
                 ) { Text(stringResource(R.string.add)) }
-                TextButton(onClick = onDismiss, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.cancel)) }
+                if (showCancel) {
+                    TextButton(onClick = onDismiss, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.cancel)) }
+                }
             }
-        }
     }
 }
 
