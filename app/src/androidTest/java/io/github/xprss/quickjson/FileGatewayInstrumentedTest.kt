@@ -1,6 +1,7 @@
 package io.github.xprss.quickjson
 
 import android.provider.DocumentsContract
+import android.os.Bundle
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import io.github.xprss.quickjson.data.FileGateway
@@ -17,9 +18,7 @@ class FileGatewayInstrumentedTest {
 
     @Before
     fun resetProvider() {
-        FakeJsonDocumentsProvider.content = "{\"imported\":true}".encodeToByteArray()
-        FakeJsonDocumentsProvider.modifiedAt = 1
-        FakeJsonDocumentsProvider.allowAccess = true
+        setProviderState(content = "{\"imported\":true}".encodeToByteArray(), modifiedAt = 1, allowAccess = true)
     }
 
     @Test
@@ -31,16 +30,28 @@ class FileGatewayInstrumentedTest {
 
     @Test
     fun reportsRevokedPermissionAndInvalidUtf8() {
-        FakeJsonDocumentsProvider.allowAccess = false
+        setProviderState(allowAccess = false)
         assertTrue(gateway.read(uri).isFailure)
-        FakeJsonDocumentsProvider.allowAccess = true
-        FakeJsonDocumentsProvider.content = byteArrayOf(0xC3.toByte(), 0x28)
+        setProviderState(content = byteArrayOf(0xC3.toByte(), 0x28), allowAccess = true)
         assertTrue(gateway.read(uri).isFailure)
     }
 
     @Test
     fun enforcesFiveMibLimit() {
-        FakeJsonDocumentsProvider.content = ByteArray((FileGateway.MAX_BYTES + 1).toInt())
+        setProviderState(content = ByteArray((FileGateway.MAX_BYTES + 1).toInt()))
         assertTrue(gateway.read(uri).isFailure)
+    }
+
+    private fun setProviderState(content: ByteArray? = null, modifiedAt: Long? = null, allowAccess: Boolean? = null) {
+        ApplicationProvider.getApplicationContext<android.content.Context>().contentResolver.call(
+            uri,
+            "set-state",
+            null,
+            Bundle().apply {
+                content?.let { putByteArray("content", it) }
+                modifiedAt?.let { putLong("modifiedAt", it) }
+                allowAccess?.let { putBoolean("allowAccess", it) }
+            },
+        )
     }
 }

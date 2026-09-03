@@ -5,6 +5,7 @@ import android.content.ContentValues;
 import android.database.Cursor;
 import android.database.MatrixCursor;
 import android.net.Uri;
+import android.os.Bundle;
 import android.os.ParcelFileDescriptor;
 import android.provider.OpenableColumns;
 import java.io.ByteArrayOutputStream;
@@ -81,6 +82,24 @@ public final class FakeJsonDocumentsProvider extends ContentProvider {
         } catch (IOException exception) {
             throw new FileNotFoundException(exception.getMessage());
         }
+    }
+
+    @Override
+    public Bundle call(String method, String arg, Bundle extras) {
+        if ("set-state".equals(method) && extras != null) {
+            byte[] updatedContent = extras.getByteArray("content");
+            if (updatedContent != null) {
+                content = updatedContent;
+            }
+            if (extras.containsKey("modifiedAt")) {
+                modifiedAt = extras.getLong("modifiedAt");
+            }
+            if (extras.containsKey("allowAccess")) {
+                allowAccess = extras.getBoolean("allowAccess");
+            }
+            return Bundle.EMPTY;
+        }
+        return super.call(method, arg, extras);
     }
 
     @Override
