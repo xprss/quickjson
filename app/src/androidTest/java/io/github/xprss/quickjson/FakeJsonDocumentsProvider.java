@@ -7,8 +7,10 @@ import android.os.ParcelFileDescriptor;
 import android.provider.DocumentsContract.Document;
 import android.provider.DocumentsContract.Root;
 import android.provider.DocumentsProvider;
+import java.io.ByteArrayOutputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 
 /** A provider without Kotlin runtime dependencies, available before test setup runs. */
 public final class FakeJsonDocumentsProvider extends DocumentsProvider {
@@ -74,7 +76,7 @@ public final class FakeJsonDocumentsProvider extends DocumentsProvider {
                 Thread writer = new Thread(() -> {
                     try (ParcelFileDescriptor.AutoCloseInputStream input =
                                  new ParcelFileDescriptor.AutoCloseInputStream(pipe[0])) {
-                        content = input.readBytes();
+                        content = readAllBytes(input);
                         modifiedAt++;
                     } catch (IOException ignored) {
                         // The client controls the pipe lifetime in this test provider.
@@ -109,5 +111,15 @@ public final class FakeJsonDocumentsProvider extends DocumentsProvider {
                 .add(Document.COLUMN_LAST_MODIFIED, modifiedAt)
                 .add(Document.COLUMN_FLAGS, Document.FLAG_SUPPORTS_WRITE);
         return cursor;
+    }
+
+    private static byte[] readAllBytes(InputStream input) throws IOException {
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        byte[] buffer = new byte[8_192];
+        int count;
+        while ((count = input.read(buffer)) != -1) {
+            output.write(buffer, 0, count);
+        }
+        return output.toByteArray();
     }
 }
