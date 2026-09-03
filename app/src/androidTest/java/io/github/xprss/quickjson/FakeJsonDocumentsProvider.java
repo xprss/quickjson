@@ -1,37 +1,28 @@
 package io.github.xprss.quickjson;
 
+import android.content.ContentProvider;
+import android.content.ContentValues;
 import android.database.Cursor;
 import android.database.MatrixCursor;
-import android.os.CancellationSignal;
+import android.net.Uri;
 import android.os.ParcelFileDescriptor;
-import android.provider.DocumentsContract.Document;
-import android.provider.DocumentsContract.Root;
-import android.provider.DocumentsProvider;
+import android.provider.OpenableColumns;
 import java.io.ByteArrayOutputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 
 /** A provider without Kotlin runtime dependencies, available before test setup runs. */
-public final class FakeJsonDocumentsProvider extends DocumentsProvider {
+public final class FakeJsonDocumentsProvider extends ContentProvider {
     public static final String AUTHORITY = "io.github.xprss.quickjson.test.documents";
     public static volatile byte[] content = new byte[] {0x7B, 0x7D};
     public static volatile long modifiedAt = 1;
     public static volatile boolean allowAccess = true;
 
-    private static final String[] ROOT_COLUMNS = {
-            Root.COLUMN_ROOT_ID,
-            Root.COLUMN_DOCUMENT_ID,
-            Root.COLUMN_TITLE,
-            Root.COLUMN_FLAGS,
-    };
     private static final String[] DOCUMENT_COLUMNS = {
-            Document.COLUMN_DOCUMENT_ID,
-            Document.COLUMN_DISPLAY_NAME,
-            Document.COLUMN_MIME_TYPE,
-            Document.COLUMN_SIZE,
-            Document.COLUMN_LAST_MODIFIED,
-            Document.COLUMN_FLAGS,
+            OpenableColumns.DISPLAY_NAME,
+            OpenableColumns.SIZE,
+            "last_modified",
     };
 
     @Override
@@ -40,32 +31,23 @@ public final class FakeJsonDocumentsProvider extends DocumentsProvider {
     }
 
     @Override
-    public Cursor queryRoots(String[] projection) {
-        MatrixCursor cursor = new MatrixCursor(projection != null ? projection : ROOT_COLUMNS);
+    public Cursor query(
+            Uri uri,
+            String[] projection,
+            String selection,
+            String[] selectionArgs,
+            String sortOrder
+    ) {
+        MatrixCursor cursor = new MatrixCursor(projection != null ? projection : DOCUMENT_COLUMNS);
         cursor.newRow()
-                .add(Root.COLUMN_ROOT_ID, "root")
-                .add(Root.COLUMN_DOCUMENT_ID, "root")
-                .add(Root.COLUMN_TITLE, "QuickJSON test provider")
-                .add(Root.COLUMN_FLAGS, Root.FLAG_SUPPORTS_CREATE);
+                .add(OpenableColumns.DISPLAY_NAME, "test.json")
+                .add(OpenableColumns.SIZE, content.length)
+                .add("last_modified", modifiedAt);
         return cursor;
     }
 
     @Override
-    public Cursor queryDocument(String documentId, String[] projection) {
-        return documentCursor(documentId, projection);
-    }
-
-    @Override
-    public Cursor queryChildDocuments(String parentDocumentId, String[] projection, String sortOrder) {
-        return documentCursor("test", projection);
-    }
-
-    @Override
-    public ParcelFileDescriptor openDocument(
-            String documentId,
-            String mode,
-            CancellationSignal signal
-    ) throws FileNotFoundException {
+    public ParcelFileDescriptor openFile(Uri uri, String mode) throws FileNotFoundException {
         if (!allowAccess) {
             throw new FileNotFoundException("Permission revoked");
         }
@@ -101,16 +83,24 @@ public final class FakeJsonDocumentsProvider extends DocumentsProvider {
         }
     }
 
-    private static Cursor documentCursor(String documentId, String[] projection) {
-        MatrixCursor cursor = new MatrixCursor(projection != null ? projection : DOCUMENT_COLUMNS);
-        cursor.newRow()
-                .add(Document.COLUMN_DOCUMENT_ID, documentId)
-                .add(Document.COLUMN_DISPLAY_NAME, "test.json")
-                .add(Document.COLUMN_MIME_TYPE, "application/json")
-                .add(Document.COLUMN_SIZE, content.length)
-                .add(Document.COLUMN_LAST_MODIFIED, modifiedAt)
-                .add(Document.COLUMN_FLAGS, Document.FLAG_SUPPORTS_WRITE);
-        return cursor;
+    @Override
+    public String getType(Uri uri) {
+        return "application/json";
+    }
+
+    @Override
+    public Uri insert(Uri uri, ContentValues values) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public int delete(Uri uri, String selection, String[] selectionArgs) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public int update(Uri uri, ContentValues values, String selection, String[] selectionArgs) {
+        throw new UnsupportedOperationException();
     }
 
     private static byte[] readAllBytes(InputStream input) throws IOException {
