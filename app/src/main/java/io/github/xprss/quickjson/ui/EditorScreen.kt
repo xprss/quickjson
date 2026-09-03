@@ -537,6 +537,7 @@ private fun InlineAddRow(
                     TextButton(onClick = onDismiss, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.cancel)) }
                 }
             }
+        }
     }
 }
 
