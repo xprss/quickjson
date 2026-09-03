@@ -16,7 +16,7 @@ class QuickJsonUiTest {
     fun createsObjectIntoBuilderAndSwitchesEditors() {
         compose.onNodeWithText("New", substring = true).performClick()
         compose.onNodeWithTag("new-object-menu-item").performClick()
-        compose.onNodeWithText("JSON Builder").assertIsDisplayed()
+        compose.onNodeWithText("Add property").assertIsDisplayed()
         compose.onNodeWithText("Code").performClick()
         compose.onNodeWithText("Code").assertIsDisplayed()
     }
