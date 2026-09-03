@@ -29,11 +29,12 @@ jobs:
           java-version: "17"
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@0723195856401067f7a2779048b490ace7a47d7c
-      - name: Install Android API 36
+      - name: Install Android API 37.0
         run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses
       - run: >-
           "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
-          "platforms;android-36"
+          --channel=3
+          "platforms;android-37.0"
           "build-tools;36.0.0"
       - name: Unit tests, lint and debug APK
         run: ./gradlew --no-daemon testDebugUnitTest lintDebug assembleDebug
@@ -56,7 +57,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        api: [31, 36]
+        include:
+          - api: 31
+            channel: stable
+          - api: 36
+            channel: stable
     steps:
       - name: Check out sources
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
@@ -67,16 +72,18 @@ jobs:
           java-version: "17"
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@0723195856401067f7a2779048b490ace7a47d7c
-      - name: Install Android API 36
+      - name: Install Android API 37.0
         run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses
       - run: >-
           "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
-          "platforms;android-36"
+          --channel=3
+          "platforms;android-37.0"
           "build-tools;36.0.0"
       - name: Run connected tests on API ${{ matrix.api }}
         uses: ReactiveCircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d
         with:
           api-level: ${{ matrix.api }}
+          channel: ${{ matrix.channel }}
           target: google_apis
           arch: x86_64
           profile: pixel_6
@@ -112,11 +119,12 @@ jobs:
           java-version: "17"
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@0723195856401067f7a2779048b490ace7a47d7c
-      - name: Install Android API 36
+      - name: Install Android API 37.0
         run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses
       - run: >-
           "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
-          "platforms;android-36"
+          --channel=3
+          "platforms;android-37.0"
           "build-tools;36.0.0"
       - name: Decode signing key in runner temporary directory
         shell: bash

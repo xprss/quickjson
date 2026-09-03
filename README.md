@@ -19,13 +19,13 @@ Non dichiara il permesso `INTERNET` e non integra analytics, pubblicità, accoun
 ## Requisiti e build locale
 
 - JDK 17
-- Android SDK Platform 36 (`platforms;android-36`)
+- Android SDK Platform 37.0 preview (`platforms;android-37.0`, canale canary)
 - Android SDK Build Tools 36.0.0 o successivi
 
 Il Wrapper blocca Gradle 9.5.0 e ne verifica il checksum. AGP 9.3.2 usa il supporto Kotlin integrato (Kotlin 2.2.10); le altre versioni sono nel version catalog.
 
 ```bash
-sdkmanager "platforms;android-36" "build-tools;36.0.0"
+sdkmanager --channel=3 "platforms;android-37.0" "build-tools;36.0.0"
 ./gradlew testDebugUnitTest lintDebug assembleDebug
 ```
 
@@ -56,7 +56,7 @@ Gli schemi Room esportati sono in `app/schemas`; ogni cambio di schema deve incl
 
 La suite copre parsing dei tipi JSON, Unicode ed escape, errori, chiavi duplicate, format/minify, operazioni e riordino dell’albero, undo/redo e conflitti esterni. I test Android coprono Room/Flow, bozze non valide, migrazione, flusso Compose e SAF tramite un `DocumentsProvider` finto (I/O, UTF-8, dimensione e permesso revocato).
 
-La CI viene eseguita su pull request e push a `master`, con Wrapper validation, test, lint, APK debug e test strumentati su API 31 e 36. Dopo il successo dell'intera matrice su `master`, crea, firma, verifica e pubblica come artifact l'APK `release`, con checksum SHA-256 e mapping R8. Le pull request non hanno accesso ai secret di firma. Tutte le Actions sono bloccate a SHA completo e gli artifact temporanei scadono dopo sette giorni.
+La CI viene eseguita su pull request e push a `master`, con Wrapper validation, test, lint, APK debug e test strumentati su API 31 e 36. Compila con Android SDK 37.0 dal canale canary, richiesto dalle dipendenze Compose. Dopo il successo dell'intera matrice su `master`, crea, firma, verifica e pubblica come artifact l'APK `release`, con checksum SHA-256 e mapping R8. Le pull request non hanno accesso ai secret di firma. Tutte le Actions sono bloccate a SHA completo e gli artifact temporanei scadono dopo sette giorni.
 
 ## Release firmata
 

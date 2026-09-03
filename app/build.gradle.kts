@@ -8,12 +8,12 @@ plugins {
 
 android {
     namespace = "io.github.xprss.quickjson"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "io.github.xprss.quickjson"
         minSdk = 31
-        targetSdk = 36
+        targetSdk = 37
         versionCode = providers.environmentVariable("VERSION_CODE").orNull?.toIntOrNull() ?: 1
         versionName = providers.environmentVariable("VERSION_NAME").orNull ?: "0.1.0"
 
