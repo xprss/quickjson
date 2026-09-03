@@ -77,14 +77,9 @@ Configurare nei GitHub Actions Secrets:
 
 Non cambiare il keystore nelle versioni successive: una chiave diversa impedisce l’aggiornamento dell’app installata.
 
-La pubblicazione accetta solo tag `vMAJOR.MINOR.PATCH`:
+Ogni push su `master` che supera l'intera matrice CI pubblica automaticamente una release GitHub firmata: non occorre creare o inviare tag. La pipeline crea il tag `vMAJOR.MINOR.PATCH`, calcola `versionCode = major × 1.000.000 + minor × 1.000 + patch` e pubblica APK, checksum SHA-256, mapping R8 e attestazione di provenienza.
 
-```bash
-git tag -s v1.0.0 -m "QuickJSON 1.0.0"
-git push origin v1.0.0
-```
-
-Il workflow calcola `versionCode = major × 1.000.000 + minor × 1.000 + patch`, esegue tutti i controlli, decodifica il keystore soltanto in `$RUNNER_TEMP`, compila con R8/resource shrinking, verifica firma e certificato con `apksigner` e pubblica APK, checksum SHA-256, mapping R8 e attestazione di provenienza nella GitHub Release.
+Il primo rilascio è `0.1.0`. I commit [Conventional Commits](https://www.conventionalcommits.org/) determinano il bump successivo: `feat:` aumenta il minor, `!` o `BREAKING CHANGE:` il major e ogni altra modifica il patch. Un nuovo push senza modifiche rispetto all'ultima release non ne crea una nuova.
 
 ## Licenza
 
