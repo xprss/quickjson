@@ -38,11 +38,16 @@ class FileGatewayInstrumentedTest {
 
     @Test
     fun enforcesFiveMibLimit() {
-        setProviderState(content = ByteArray((FileGateway.MAX_BYTES + 1).toInt()))
+        setProviderState(declaredSize = FileGateway.MAX_BYTES + 1)
         assertTrue(gateway.read(uri).isFailure)
     }
 
-    private fun setProviderState(content: ByteArray? = null, modifiedAt: Long? = null, allowAccess: Boolean? = null) {
+    private fun setProviderState(
+        content: ByteArray? = null,
+        modifiedAt: Long? = null,
+        allowAccess: Boolean? = null,
+        declaredSize: Long = -1,
+    ) {
         ApplicationProvider.getApplicationContext<android.content.Context>().contentResolver.call(
             uri,
             "set-state",
@@ -51,6 +56,7 @@ class FileGatewayInstrumentedTest {
                 content?.let { putByteArray("content", it) }
                 modifiedAt?.let { putLong("modifiedAt", it) }
                 allowAccess?.let { putBoolean("allowAccess", it) }
+                putLong("declaredSize", declaredSize)
             },
         )
     }

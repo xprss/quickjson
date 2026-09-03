@@ -17,6 +17,7 @@ import java.io.InputStream;
 public final class FakeJsonDocumentsProvider extends ContentProvider {
     public static final String AUTHORITY = "io.github.xprss.quickjson.test.documents";
     public static volatile byte[] content = new byte[] {0x7B, 0x7D};
+    public static volatile long declaredSize = -1;
     public static volatile long modifiedAt = 1;
     public static volatile boolean allowAccess = true;
 
@@ -42,7 +43,7 @@ public final class FakeJsonDocumentsProvider extends ContentProvider {
         MatrixCursor cursor = new MatrixCursor(projection != null ? projection : DOCUMENT_COLUMNS);
         cursor.newRow()
                 .add(OpenableColumns.DISPLAY_NAME, "test.json")
-                .add(OpenableColumns.SIZE, content.length)
+                .add(OpenableColumns.SIZE, declaredSize >= 0 ? declaredSize : content.length)
                 .add("last_modified", modifiedAt);
         return cursor;
     }
@@ -93,6 +94,9 @@ public final class FakeJsonDocumentsProvider extends ContentProvider {
             }
             if (extras.containsKey("modifiedAt")) {
                 modifiedAt = extras.getLong("modifiedAt");
+            }
+            if (extras.containsKey("declaredSize")) {
+                declaredSize = extras.getLong("declaredSize");
             }
             if (extras.containsKey("allowAccess")) {
                 allowAccess = extras.getBoolean("allowAccess");
