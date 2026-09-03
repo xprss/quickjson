@@ -276,15 +276,20 @@ object JsonTree {
         }
     }
 
-    fun addChild(root: JsonElement, path: JsonPath, type: JsonType = JsonType.STRING): JsonElement {
+    fun addChild(root: JsonElement, path: JsonPath, type: JsonType = JsonType.STRING): JsonElement =
+        addChild(root, path, default(type))
+
+    /** Adds a complete value in one mutation, preserving object order and making the key unique. */
+    fun addChild(root: JsonElement, path: JsonPath, value: JsonElement, requestedKey: String? = null): JsonElement {
         val parent = get(root, path) ?: return root
         val changed = when (parent) {
-            is JsonArray -> JsonArray(parent + default(type))
+            is JsonArray -> JsonArray(parent + value)
             is JsonObject -> {
-                var key = "key"
+                val baseKey = requestedKey?.trim().takeUnless { it.isNullOrEmpty() } ?: "key"
+                var key = baseKey
                 var number = 2
-                while (key in parent) key = "key${number++}"
-                JsonObject(LinkedHashMap(parent).apply { put(key, default(type)) })
+                while (key in parent) key = "$baseKey${number++}"
+                JsonObject(LinkedHashMap(parent).apply { put(key, value) })
             }
             else -> parent
         }

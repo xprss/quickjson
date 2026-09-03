@@ -109,7 +109,7 @@ fun QuickJsonApp(
                         onRemoveNode = viewModel::removeNode,
                         onDuplicateNode = viewModel::duplicateNode,
                         onMoveNode = viewModel::moveNode,
-                        onAddNode = viewModel::addNode,
+                        onAddValue = viewModel::addNode,
                         onRenameKey = viewModel::renameKey,
                         onUpdatePrimitive = viewModel::updatePrimitive,
                         onChangeType = viewModel::changeType,

@@ -13,11 +13,11 @@ class QuickJsonUiTest {
     val compose = createAndroidComposeRule<MainActivity>()
 
     @Test
-    fun createsObjectInTwoActionsAndSwitchesEditors() {
+    fun createsObjectIntoBuilderAndSwitchesEditors() {
         compose.onNodeWithText("New", substring = true).performClick()
         compose.onNodeWithTag("new-object-menu-item").performClick()
+        compose.onNodeWithText("JSON Builder").assertIsDisplayed()
+        compose.onNodeWithText("Code").performClick()
         compose.onNodeWithText("Code").assertIsDisplayed()
-        compose.onNodeWithText("Visual").performClick()
-        compose.onNodeWithText("$").assertIsDisplayed()
     }
 }

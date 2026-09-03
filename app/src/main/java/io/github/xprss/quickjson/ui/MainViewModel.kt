@@ -112,7 +112,8 @@ class MainViewModel(
 
     fun create(raw: String? = null) = viewModelScope.launch {
         val initial = raw ?: if (settings.value.rootType == RootType.ARRAY) "[]" else "{}"
-        open(container.documents.create(initial).id)
+        val document = container.documents.create(initial)
+        open(document.id, preferredTab = if (JsonEngine.validate(initial) is JsonValidation.Valid) EditorTab.VISUAL else EditorTab.CODE)
     }
 
     fun createFromTemplate(template: TemplateEntity) = create(template.jsonContent)
@@ -128,7 +129,7 @@ class MainViewModel(
                 externalHash = external.hash,
                 externalModifiedAt = external.modifiedAt,
             )
-            open(document.id)
+            open(document.id, preferredTab = if (JsonEngine.validate(external.content) is JsonValidation.Valid) EditorTab.VISUAL else EditorTab.CODE)
         }.onFailure { error ->
             showMessage(
                 when {
@@ -145,19 +146,20 @@ class MainViewModel(
         if (text.isBlank()) showMessage(container.text(R.string.clipboard_empty)) else create(text)
     }
 
-    fun open(id: String) = viewModelScope.launch {
+    fun open(id: String, preferredTab: EditorTab? = null) = viewModelScope.launch {
         flush()
         val document = container.documents.document(id) ?: return@launch
-        val tab = runCatching { EditorTab.valueOf(document.editorTab) }.getOrDefault(EditorTab.CODE)
+        val tab = preferredTab ?: runCatching { EditorTab.valueOf(document.editorTab) }.getOrDefault(EditorTab.CODE)
+        val opened = document.copy(openedAt = System.currentTimeMillis(), editorTab = tab.name)
         editor.value = EditorState(
-            document, document.rawContent, JsonEngine.validate(document.rawContent), tab,
-            document.cursorStart.coerceIn(0, document.rawContent.length),
-            document.cursorEnd.coerceIn(0, document.rawContent.length),
+            opened, opened.rawContent, JsonEngine.validate(opened.rawContent), tab,
+            opened.cursorStart.coerceIn(0, opened.rawContent.length),
+            opened.cursorEnd.coerceIn(0, opened.rawContent.length),
         )
-        history = UndoHistory(document.rawContent)
+        history = UndoHistory(opened.rawContent)
         savedState[CURRENT_DOCUMENT] = id
         container.preferences.setLastDocument(id)
-        container.documents.update(document.copy(openedAt = System.currentTimeMillis()))
+        container.documents.update(opened)
     }
 
     fun close() = viewModelScope.launch {
@@ -218,13 +220,26 @@ class MainViewModel(
     fun removeNode(path: JsonPath) = updateTree { JsonTree.remove(it, path) }
     fun duplicateNode(path: JsonPath) = updateTree { JsonTree.duplicate(it, path) }
     fun moveNode(path: JsonPath, delta: Int) = updateTree { JsonTree.move(it, path, delta) }
-    fun addNode(path: JsonPath, type: JsonType) = updateTree { JsonTree.addChild(it, path, type) }
+
+    fun addNode(path: JsonPath, key: String, value: String, type: JsonType) {
+        val element = primitiveFor(value, type)
+        if (element == null) {
+            showMessage(container.text(R.string.invalid_value))
+            return
+        }
+        updateTree { JsonTree.addChild(it, path, element, key) }
+    }
     fun renameKey(path: JsonPath, value: String) = updateTree { root ->
         JsonTree.renameKey(root, path, value).getOrElse { showMessage(container.text(R.string.duplicate_key_error)); root }
     }
 
     fun updatePrimitive(path: JsonPath, value: String, type: JsonType) {
-        val element = when (type) {
+        val element = primitiveFor(value, type)
+        if (element == null) showMessage(container.text(R.string.invalid_value)) else replaceNode(path, element)
+    }
+
+    private fun primitiveFor(value: String, type: JsonType): JsonElement? =
+        when (type) {
             JsonType.STRING -> JsonPrimitive(value)
             JsonType.NUMBER -> value.toLongOrNull()?.let(::JsonPrimitive)
                 ?: value.toDoubleOrNull()?.let(::JsonPrimitive)
@@ -232,8 +247,6 @@ class MainViewModel(
             JsonType.NULL -> kotlinx.serialization.json.JsonNull
             JsonType.OBJECT, JsonType.ARRAY -> JsonTree.default(type)
         }
-        if (element == null) showMessage(container.text(R.string.invalid_value)) else replaceNode(path, element)
-    }
 
     fun changeType(path: JsonPath, type: JsonType) = replaceNode(path, JsonTree.default(type))
 

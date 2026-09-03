@@ -67,6 +67,14 @@ class JsonEngineTest {
     }
 
     @Test
+    fun builderAddsNamedValuesAndKeepsExistingKeys() {
+        var root = JsonObject(linkedMapOf("name" to JsonPrimitive("Ada")))
+        root = JsonTree.addChild(root, JsonPath(), JsonPrimitive("Grace"), "name") as JsonObject
+        assertEquals("Ada", (root["name"] as JsonPrimitive).content)
+        assertEquals("Grace", (root["name2"] as JsonPrimitive).content)
+    }
+
+    @Test
     fun renameRefusesDuplicateObjectKey() {
         val root = JsonObject(mapOf("a" to JsonPrimitive(1), "b" to JsonPrimitive(2)))
         assertTrue(JsonTree.renameKey(root, JsonPath().key("a"), "b").isFailure)

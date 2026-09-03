@@ -27,6 +27,13 @@
     <string name="back">Indietro</string>
     <string name="line_column">Riga %1$d, colonna %2$d</string>
     <string name="invalid_visual">La modifica visuale non è disponibile finché il JSON non torna valido.</string>
+    <string name="builder">JSON Builder</string>
+    <string name="builder_hint">Aggiungi una proprietà o un elemento completo senza interrompere il flusso.</string>
+    <string name="add_property">Aggiungi proprietà</string>
+    <string name="add_item">Aggiungi elemento</string>
+    <string name="add_value">Aggiungi valore</string>
+    <string name="key">Chiave</string>
+    <string name="value">Valore</string>
     <string name="expand">Espandi</string>
     <string name="collapse">Comprimi</string>
     <string name="node_path">Percorso: %1$s</string>

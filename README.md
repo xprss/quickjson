@@ -9,7 +9,7 @@ Non dichiara il permesso `INTERNET` e non integra analytics, pubblicità, accoun
 - documenti recenti, ricerca, rinomina inline, duplicazione ed eliminazione annullabile;
 - creazione rapida di object, array, contenuto degli appunti o template;
 - editor codice con numeri di riga, evidenziazione, linea/colonna dell’errore, format 2/4 spazi, minify, copy e undo/redo;
-- editor visuale ricorsivo per tutti i tipi JSON, con modifica, cambio tipo, aggiunta, duplicazione, eliminazione e riordino;
+- builder visuale predefinito per i nuovi JSON validi: inserimento contestuale di chiave, tipo e valore in un solo gesto, con focus tastiera e inserimenti consecutivi rapidi; editor ricorsivo per modifica, cambio tipo, duplicazione, eliminazione e riordino;
 - rilevamento delle chiavi duplicate prima della conversione ad albero;
 - import con `ACTION_OPEN_DOCUMENT`, `ACTION_VIEW`, condivisione e appunti; export, share con `FileProvider` e salvataggio esplicito del file collegato;
 - rilevamento dei conflitti esterni tramite hash SHA-256 e data, con Ricarica, Sovrascrivi e Salva con nome;

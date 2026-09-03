@@ -27,6 +27,13 @@
     <string name="back">Back</string>
     <string name="line_column">Line %1$d, column %2$d</string>
     <string name="invalid_visual">Visual editing is unavailable until the JSON is valid.</string>
+    <string name="builder">JSON Builder</string>
+    <string name="builder_hint">Add a complete property or item without leaving the flow.</string>
+    <string name="add_property">Add property</string>
+    <string name="add_item">Add item</string>
+    <string name="add_value">Add value</string>
+    <string name="key">Key</string>
+    <string name="value">Value</string>
     <string name="expand">Expand</string>
     <string name="collapse">Collapse</string>
     <string name="node_path">Path: %1$s</string>

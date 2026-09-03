@@ -17,6 +17,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -39,6 +41,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -48,6 +52,7 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.OffsetMapping
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.input.TransformedText
@@ -87,7 +92,7 @@ fun EditorScreen(
     onRemoveNode: (JsonPath) -> Unit,
     onDuplicateNode: (JsonPath) -> Unit,
     onMoveNode: (JsonPath, Int) -> Unit,
-    onAddNode: (JsonPath, JsonType) -> Unit,
+    onAddValue: (JsonPath, String, String, JsonType) -> Unit,
     onRenameKey: (JsonPath, String) -> Unit,
     onUpdatePrimitive: (JsonPath, String, JsonType) -> Unit,
     onChangeType: (JsonPath, JsonType) -> Unit,
@@ -163,7 +168,7 @@ fun EditorScreen(
                         onRemove = onRemoveNode,
                         onDuplicate = onDuplicateNode,
                         onMove = onMoveNode,
-                        onAdd = onAddNode,
+                        onAddValue = onAddValue,
                         onRenameKey = onRenameKey,
                         onUpdatePrimitive = onUpdatePrimitive,
                         onChangeType = onChangeType,
@@ -304,27 +309,52 @@ private fun VisualEditor(
     onRemove: (JsonPath) -> Unit,
     onDuplicate: (JsonPath) -> Unit,
     onMove: (JsonPath, Int) -> Unit,
-    onAdd: (JsonPath, JsonType) -> Unit,
+    onAddValue: (JsonPath, String, String, JsonType) -> Unit,
     onRenameKey: (JsonPath, String) -> Unit,
     onUpdatePrimitive: (JsonPath, String, JsonType) -> Unit,
     onChangeType: (JsonPath, JsonType) -> Unit,
 ) {
     val expanded = remember { mutableStateMapOf("$" to true) }
+    val adding = remember { mutableStateMapOf<String, Boolean>() }
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val horizontalPadding = if (maxWidth >= 840.dp) 48.dp else 8.dp
         Column(
             Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = horizontalPadding, vertical = 8.dp),
         ) {
+            Surface(
+                modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                color = MaterialTheme.colorScheme.secondaryContainer,
+                shape = MaterialTheme.shapes.medium,
+            ) {
+                Row(
+                    Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text(stringResource(R.string.builder), style = MaterialTheme.typography.titleSmall)
+                        Text(
+                            stringResource(R.string.builder_hint),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer,
+                        )
+                    }
+                    Text(
+                        if (root is JsonObject) "{ ${root.size} }" else if (root is JsonArray) "[ ${root.size} ]" else JsonTree.typeOf(root).name.lowercase(),
+                        style = MaterialTheme.typography.labelLarge,
+                    )
+                }
+            }
             JsonNode(
                 element = root,
                 path = JsonPath(),
                 label = "$",
                 depth = 0,
                 expanded = expanded,
+                adding = adding,
                 onRemove = onRemove,
                 onDuplicate = onDuplicate,
                 onMove = onMove,
-                onAdd = onAdd,
+                onAddValue = onAddValue,
                 onRenameKey = onRenameKey,
                 onUpdatePrimitive = onUpdatePrimitive,
                 onChangeType = onChangeType,
@@ -340,26 +370,29 @@ private fun JsonNode(
     label: String,
     depth: Int,
     expanded: MutableMap<String, Boolean>,
+    adding: MutableMap<String, Boolean>,
     onRemove: (JsonPath) -> Unit,
     onDuplicate: (JsonPath) -> Unit,
     onMove: (JsonPath, Int) -> Unit,
-    onAdd: (JsonPath, JsonType) -> Unit,
+    onAddValue: (JsonPath, String, String, JsonType) -> Unit,
     onRenameKey: (JsonPath, String) -> Unit,
     onUpdatePrimitive: (JsonPath, String, JsonType) -> Unit,
     onChangeType: (JsonPath, JsonType) -> Unit,
 ) {
     val isContainer = element is JsonObject || element is JsonArray
+    val isEmptyContainer = (element as? JsonObject)?.isEmpty() == true || (element as? JsonArray)?.isEmpty() == true
     val pathText = path.toString()
     val isExpanded = expanded[pathText] ?: (depth < 2)
     val expansionDescription = stringResource(if (isExpanded) R.string.collapse else R.string.expand)
+    val addDescription = stringResource(R.string.add_value)
     Surface(
         modifier = Modifier.fillMaxWidth().padding(start = (depth * 10).dp, bottom = 4.dp)
             .semantics { contentDescription = pathText },
         tonalElevation = if (depth == 0) 2.dp else 0.dp,
     ) {
-        Column(Modifier.fillMaxWidth().padding(4.dp)) {
+        Column(Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 2.dp)) {
             Row(
-                Modifier.fillMaxWidth().heightIn(min = 48.dp).horizontalScroll(rememberScrollState()),
+                Modifier.fillMaxWidth().heightIn(min = 52.dp).horizontalScroll(rememberScrollState()),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 if (isContainer) {
@@ -379,6 +412,9 @@ private fun JsonNode(
                         onValueChange = { key = it },
                         singleLine = true,
                         modifier = Modifier.widthIn(min = 96.dp, max = 180.dp),
+                        label = { Text(stringResource(R.string.key)) },
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                        keyboardActions = KeyboardActions(onDone = { onRenameKey(path, key) }),
                         trailingIcon = { TextButton(onClick = { onRenameKey(path, key) }) { Text("✓") } },
                     )
                 } else {
@@ -395,7 +431,12 @@ private fun JsonNode(
                     )
                 }
                 TypeMenu(JsonTree.typeOf(element)) { onChangeType(path, it) }
-                if (isContainer) AddMenu { onAdd(path, it) }
+                if (isContainer) {
+                    TextButton(
+                        onClick = { adding[pathText] = !(adding[pathText] ?: false) },
+                        modifier = Modifier.heightIn(min = 48.dp).semantics { contentDescription = addDescription },
+                    ) { Text("＋") }
+                }
                 if (depth > 0) {
                     NodeAction("↑", stringResource(R.string.move_up)) { onMove(path, -1) }
                     NodeAction("↓", stringResource(R.string.move_down)) { onMove(path, 1) }
@@ -403,25 +444,106 @@ private fun JsonNode(
                     NodeAction("×", stringResource(R.string.delete)) { onRemove(path) }
                 }
             }
-            Text(
-                stringResource(R.string.node_path, pathText),
-                modifier = Modifier.padding(start = 12.dp, bottom = 2.dp),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            if (isContainer && ((adding[pathText] ?: false) || (depth == 0 && isEmptyContainer))) {
+                InlineAddRow(
+                    parent = element,
+                    path = path,
+                    onAdd = { key, value, type ->
+                        onAddValue(path, key, value, type)
+                        adding[pathText] = true
+                    },
+                    onDismiss = { adding[pathText] = false },
+                )
+            }
             if (isContainer && isExpanded) {
                 when (element) {
                     is JsonObject -> element.entries.forEach { (key, value) ->
-                        JsonNode(value, path.key(key), key, depth + 1, expanded, onRemove, onDuplicate, onMove, onAdd, onRenameKey, onUpdatePrimitive, onChangeType)
+                        JsonNode(value, path.key(key), key, depth + 1, expanded, adding, onRemove, onDuplicate, onMove, onAddValue, onRenameKey, onUpdatePrimitive, onChangeType)
                     }
                     is JsonArray -> element.forEachIndexed { index, value ->
-                        JsonNode(value, path.index(index), "[$index]", depth + 1, expanded, onRemove, onDuplicate, onMove, onAdd, onRenameKey, onUpdatePrimitive, onChangeType)
+                        JsonNode(value, path.index(index), "[$index]", depth + 1, expanded, adding, onRemove, onDuplicate, onMove, onAddValue, onRenameKey, onUpdatePrimitive, onChangeType)
                     }
                     else -> Unit
                 }
             }
         }
     }
+}
+
+@Composable
+private fun InlineAddRow(
+    parent: JsonElement,
+    path: JsonPath,
+    onAdd: (String, String, JsonType) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val isObject = parent is JsonObject
+    var key by remember(path) { mutableStateOf("") }
+    var type by remember(path) { mutableStateOf(JsonType.STRING) }
+    var value by remember(path, type) { mutableStateOf(defaultInput(type)) }
+    val keyFocus = remember { FocusRequester() }
+    LaunchedEffect(path) { if (isObject) keyFocus.requestFocus() }
+    fun submit() {
+        onAdd(key, value, type)
+        key = ""
+        value = defaultInput(type)
+        if (isObject) keyFocus.requestFocus()
+    }
+    Surface(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        shape = MaterialTheme.shapes.small,
+    ) {
+        Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(
+                stringResource(if (isObject) R.string.add_property else R.string.add_item),
+                style = MaterialTheme.typography.labelLarge,
+            )
+            Row(
+                Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                if (isObject) {
+                    OutlinedTextField(
+                        value = key,
+                        onValueChange = { key = it },
+                        label = { Text(stringResource(R.string.key)) },
+                        placeholder = { Text("name") },
+                        singleLine = true,
+                        modifier = Modifier.widthIn(min = 132.dp, max = 200.dp).focusRequester(keyFocus),
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                    )
+                }
+                TypeMenu(type) { type = it }
+                if (type !in setOf(JsonType.OBJECT, JsonType.ARRAY, JsonType.NULL)) {
+                    OutlinedTextField(
+                        value = value,
+                        onValueChange = { value = it },
+                        label = { Text(stringResource(R.string.value)) },
+                        singleLine = true,
+                        modifier = Modifier.widthIn(min = 132.dp, max = 260.dp),
+                        textStyle = TextStyle(fontFamily = FontFamily.Monospace),
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                        keyboardActions = KeyboardActions(onDone = { submit() }),
+                    )
+                }
+                TextButton(
+                    onClick = { submit() },
+                    enabled = !isObject || key.isNotBlank(),
+                    modifier = Modifier.heightIn(min = 48.dp),
+                ) { Text(stringResource(R.string.add)) }
+                TextButton(onClick = onDismiss, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.cancel)) }
+            }
+        }
+    }
+}
+
+private fun defaultInput(type: JsonType) = when (type) {
+    JsonType.NUMBER -> "0"
+    JsonType.BOOLEAN -> "true"
+    JsonType.NULL -> "null"
+    else -> ""
 }
 
 @Composable
@@ -444,6 +566,8 @@ private fun PrimitiveEditor(
         modifier = modifier,
         singleLine = true,
         enabled = type != JsonType.NULL,
+        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+        keyboardActions = KeyboardActions(onDone = { onUpdate(path, value, type) }),
         trailingIcon = { TextButton(onClick = { onUpdate(path, value, type) }) { Text("✓") } },
         textStyle = TextStyle(fontFamily = FontFamily.Monospace),
     )
@@ -472,19 +596,6 @@ private fun TypeMenu(current: JsonType, onType: (JsonType) -> Unit) {
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
             JsonType.entries.forEach { type ->
                 DropdownMenuItem(text = { Text(type.name.lowercase()) }, onClick = { open = false; onType(type) })
-            }
-        }
-    }
-}
-
-@Composable
-private fun AddMenu(onType: (JsonType) -> Unit) {
-    var open by remember { mutableStateOf(false) }
-    Box {
-        TextButton(onClick = { open = true }, modifier = Modifier.heightIn(min = 48.dp)) { Text("＋") }
-        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
-            JsonType.entries.forEach { type ->
-                DropdownMenuItem(text = { Text("${stringResource(R.string.add)} ${type.name.lowercase()}") }, onClick = { open = false; onType(type) })
             }
         }
     }
