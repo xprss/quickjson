@@ -13,7 +13,7 @@ class QuickJsonUiTest {
 
     @Test
     fun createsObjectInTwoActionsAndSwitchesEditors() {
-        compose.onNodeWithText("New").performClick()
+        compose.onNodeWithText("New", substring = true).performClick()
         compose.onNodeWithText("Object {}").performClick()
         compose.onNodeWithText("Code").assertIsDisplayed()
         compose.onNodeWithText("Visual").performClick()
