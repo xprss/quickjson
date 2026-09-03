@@ -34,6 +34,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.github.xprss.quickjson.R
@@ -89,6 +90,7 @@ fun HomeScreen(
                     DropdownMenuItem(
                         text = { Text(stringResource(R.string.new_object)) },
                         onClick = { newMenu = false; onCreateObject() },
+                        modifier = Modifier.testTag("new-object-menu-item"),
                     )
                     DropdownMenuItem(
                         text = { Text(stringResource(R.string.new_array)) },
